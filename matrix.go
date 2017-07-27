@@ -9,7 +9,6 @@ import (
 
 	geo "github.com/kellydunn/golang-geo"
 	"github.com/kr/pretty"
-	polyline "github.com/twpayne/go-polyline"
 )
 
 func GetDistMatrix(origins []string, dest []string) *maps.DistanceMatrixResponse {
@@ -19,8 +18,8 @@ func GetDistMatrix(origins []string, dest []string) *maps.DistanceMatrixResponse
 	}
 
 	r := &maps.DistanceMatrixRequest{
-		Origins:       []string{"UNSW, Sydney", "International House, Wollongong"},
-		Destinations:  []string{"Sydney CBD"},
+		Origins:       origins,
+		Destinations:  dest,
 		Mode:          "ModeTransit",
 		DepartureTime: "1501452000",
 		Units:         "UnitsMetric",
@@ -37,11 +36,11 @@ func DistMatrixExample() {
 	pretty.Println(GetDistMatrix([]string{"UNSW, Sydney", "International House, Wollongong"}, []string{"Sydney CBD"}))
 }
 
-func BuildPolyline(p1, p2 *geo.Point, dist float64) [][]byte {
+func BuildPolyline(p1, p2 *geo.Point, dist float64) []string {
 	// We assume p1 is the top left and p2 is the bottom right.
 	// dist is in km
 
-	points := make([][]float64, 0)
+	points := make([]maps.LatLng, 0)
 	// Make a temp copy of our point
 	p_start := geo.NewPoint(p1.Lat(), p1.Lng())
 
@@ -52,7 +51,7 @@ func BuildPolyline(p1, p2 *geo.Point, dist float64) [][]byte {
 		// while p is still "left" of p2
 		for p.BearingTo(p2) < 180 && p.BearingTo(p2) > 0 {
 			// add p to points
-			points = append(points, []float64{p.Lat(), p.Lng()})
+			points = append(points, maps.LatLng{p.Lat(), p.Lng()})
 
 			// move p left dist kms (left 1 column)
 			p = p.PointAtDistanceAndBearing(dist, 90)
@@ -62,15 +61,15 @@ func BuildPolyline(p1, p2 *geo.Point, dist float64) [][]byte {
 	}
 	fmt.Println(len(points), " coords to be encoded.")
 
-	results := make([][]byte, 0)
+	results := make([]string, 0)
 	i, prev := 25, 0
 	for ; i < len(points); i += 25 {
-		poly := polyline.EncodeCoords(points[prev:i])
+		poly := maps.Encode(points[prev:i])
 		fmt.Printf("%s\n", poly)
 		results = append(results, poly)
 		prev = i
 	}
-	poly := polyline.EncodeCoords(points[prev:i])
+	poly := maps.Encode(points[prev:i])
 	fmt.Printf("%s\n", poly)
 	results = append(results, poly)
 
